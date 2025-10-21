@@ -7,7 +7,7 @@ npm run build
 # Upload files to EC2 (replace with your EC2 instance details)
 EC2_HOST="3.135.227.208"
 EC2_USER="ec2-user"
-KEY_FILE="your-key.pem"  # Replace with your actual key file path
+KEY_FILE="a.pem"  # Replace with your actual key file path
 
 # Copy built files to nginx html directory
 scp -i $KEY_FILE -r dist/* $EC2_USER@$EC2_HOST:/tmp/
