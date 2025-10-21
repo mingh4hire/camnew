@@ -1,18 +1,20 @@
 #!/bin/bash
-# SSL Certificate setup for Amazon Linux 2023
+# Self-signed SSL Certificate setup for Amazon Linux 2023 (IP address)
 
-# Install Certbot
-sudo dnf install -y certbot python3-certbot-nginx
+# Create directory for SSL certificates
+sudo mkdir -p /etc/ssl/private
+sudo chmod 700 /etc/ssl/private
 
-# Get SSL certificate (replace your-domain.com with your actual domain)
-# Make sure your domain DNS points to your EC2 instance first
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+# Generate self-signed SSL certificate
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/private/selfsigned.key \
+    -out /etc/ssl/certs/selfsigned.crt \
+    -subj "/C=US/ST=State/L=City/O=Organization/CN=3.135.227.208"
 
-# Test certificate renewal
-sudo certbot renew --dry-run
+# Set proper permissions
+sudo chmod 600 /etc/ssl/private/selfsigned.key
+sudo chmod 644 /etc/ssl/certs/selfsigned.crt
 
-# Set up automatic renewal (runs twice daily)
-echo "0 12,0 * * * root /usr/bin/certbot renew --quiet" | sudo tee -a /etc/crontab
-
-echo "SSL certificate installed successfully!"
-echo "Your site should now be available at https://your-domain.com"
+echo "Self-signed SSL certificate created successfully!"
+echo "Note: Browsers will show a security warning - you need to accept it to proceed."
+echo "Your site will be available at https://3.135.227.208"
