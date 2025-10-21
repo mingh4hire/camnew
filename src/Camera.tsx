@@ -18,6 +18,11 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
     try {
       setError(null);
 
+      // Check if MediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported. Please use a modern browser and ensure you\'re on HTTPS or localhost.');
+      }
+
       // Try back camera first (environment)
       let stream;
       try {
@@ -28,6 +33,7 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
             height: { ideal: 1080 }
           }
         });
+        setCurrentFacingMode('environment');
       } catch (backCameraError) {
         console.log('Back camera not available, trying front camera:', backCameraError);
         // Fall back to front camera if back camera fails
@@ -38,6 +44,7 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
             height: { ideal: 1080 }
           }
         });
+        setCurrentFacingMode('user');
       }
 
       if (videoRef.current) {
@@ -46,7 +53,8 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
         setIsStreaming(true);
       }
     } catch (err) {
-      setError('Unable to access camera. Please check permissions and ensure your device has a camera.');
+      const errorMessage = err instanceof Error ? err.message : 'Unable to access camera. Please check permissions and ensure your device has a camera.';
+      setError(errorMessage);
       console.error('Error accessing camera:', err);
     }
   }, []);
@@ -113,6 +121,12 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
 
     try {
       setError(null);
+
+      // Check if MediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported.');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: newFacingMode,
@@ -127,7 +141,8 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
         setIsStreaming(true);
       }
     } catch (err) {
-      setError(`Unable to switch to ${newFacingMode === 'environment' ? 'back' : 'front'} camera.`);
+      const errorMessage = err instanceof Error ? err.message : `Unable to switch to ${newFacingMode === 'environment' ? 'back' : 'front'} camera.`;
+      setError(errorMessage);
       console.error('Error switching camera:', err);
       // Try to restart with the original camera
       startCamera();
@@ -135,6 +150,24 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
   }, [currentFacingMode, stopCamera, startCamera]);
 
   useEffect(() => {
+    const checkCompatibility = () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Your browser doesn\'t support camera access. Please use a modern browser like Chrome, Firefox, or Safari.');
+        return false;
+      }
+
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        setError('Camera access requires a secure connection (HTTPS) or localhost. Please access this app via HTTPS.');
+        return false;
+      }
+
+      return true;
+    };
+
+    if (!checkCompatibility()) {
+      return;
+    }
+
     startCamera();
 
     return () => {
