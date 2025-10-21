@@ -63,7 +63,7 @@
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 20px;
+  gap: 15px;
   align-items: center;
   z-index: 1001;
 }
@@ -99,8 +99,13 @@
   font-size: 18px;
 }
 
-.control-btn.capture:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 1);
+.control-btn.switch-camera {
+  background: rgba(52, 152, 219, 0.9);
+  color: white;
+}
+
+.control-btn.switch-camera:hover:not(:disabled) {
+  background: rgba(52, 152, 219, 1);
 }
 
 .camera-info {

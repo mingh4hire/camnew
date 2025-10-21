@@ -12,17 +12,33 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [currentFacingMode, setCurrentFacingMode] = useState<'environment' | 'user'>('environment');
 
   const startCamera = useCallback(async () => {
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      });
+
+      // Try back camera first (environment)
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        });
+      } catch (backCameraError) {
+        console.log('Back camera not available, trying front camera:', backCameraError);
+        // Fall back to front camera if back camera fails
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        });
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -30,7 +46,7 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
         setIsStreaming(true);
       }
     } catch (err) {
-      setError('Unable to access camera. Please check permissions.');
+      setError('Unable to access camera. Please check permissions and ensure your device has a camera.');
       console.error('Error accessing camera:', err);
     }
   }, []);
@@ -88,6 +104,36 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
     setZoom(prev => Math.max(prev - 0.1, 0.5));
   }, []);
 
+  const switchCamera = useCallback(async () => {
+    const newFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    setCurrentFacingMode(newFacingMode);
+
+    // Stop current stream
+    stopCamera();
+
+    try {
+      setError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: newFacingMode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsStreaming(true);
+      }
+    } catch (err) {
+      setError(`Unable to switch to ${newFacingMode === 'environment' ? 'back' : 'front'} camera.`);
+      console.error('Error switching camera:', err);
+      // Try to restart with the original camera
+      startCamera();
+    }
+  }, [currentFacingMode, stopCamera, startCamera]);
+
   useEffect(() => {
     startCamera();
 
@@ -119,6 +165,14 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
 
       <div className="camera-controls">
         <button
+          className="control-btn switch-camera"
+          onClick={switchCamera}
+          disabled={!isStreaming}
+        >
+          🔄 Switch Camera
+        </button>
+
+        <button
           className="control-btn zoom-out"
           onClick={zoomOut}
           disabled={zoom <= 0.5}
@@ -145,6 +199,7 @@ const Camera: React.FC<CameraProps> = ({ onPhotoTaken }) => {
 
       <div className="camera-info">
         <p>Zoom: {zoom.toFixed(1)}x</p>
+        <p>Camera: {currentFacingMode === 'environment' ? 'Back' : 'Front'}</p>
         {isStreaming && <p>Camera active</p>}
       </div>
     </div>
